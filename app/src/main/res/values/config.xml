@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DEV_REGISTER_URI">http://10.0.2.2:3000/users/register</string>
+</resources>
