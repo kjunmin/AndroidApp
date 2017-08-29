@@ -1,9 +1,10 @@
-package com.webnav.matth.logintest;
+package com.webnav.matth.login;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 
 
@@ -13,7 +14,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -27,7 +27,8 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
-import com.webnav.matth.GeoNavSRC.MainActivity;
+import com.webnav.matth.geomap.AsyncResponse;
+import com.webnav.matth.geomap.MainActivity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -144,7 +145,7 @@ public class LoginActivity extends AppCompatActivity  {
 
     private boolean isPasswordValid(String password) {
         //TODO: Replace this with your own logic
-        return password.length() > 4;
+        return password.length() > 2;
     }
 
     /**
@@ -211,25 +212,22 @@ public class LoginActivity extends AppCompatActivity  {
 
         @Override
         protected Boolean doInBackground(Void... params) {
+            boolean proceed = false;
             // TODO: attempt authentication against a network service.
-            boolean isSuccess;
-
             AuthenticateUser(mUsername, mPassword);
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             return true;
         }
 
-//        @Override
-//        protected void onPostExecute(final Boolean success) {
-//            mAuthTask = null;
-//            showProgress(false);
-//
-//            if (success) {
-//                finish();
-//            } else {
-//                mPasswordView.setError(getString(R.string.error_incorrect_password));
-//                mPasswordView.requestFocus();
-//            }
-//        }
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAuthTask = null;
+            showProgress(false);
+        }
 
         @Override
         protected void onCancelled() {
@@ -239,7 +237,7 @@ public class LoginActivity extends AppCompatActivity  {
 
 
         private void AuthenticateUser(String username, String password) {
-            String AUTHENTICATE_URL = Config.DEV_AUTHENTICATE_URI;
+            String AUTHENTICATE_URL = Config.DEV_AUTHENTICATE_URL;
             Map<String, String> params = new HashMap<>();
             params.put("username", username);
             params.put("password", password);
@@ -250,16 +248,28 @@ public class LoginActivity extends AppCompatActivity  {
                 public void onResponse(JSONObject response) {;
                     boolean success = false;
                     String output = "";
+                    String jwtToken = "";
+                    JSONObject user = new JSONObject();
                     try {
                         success = response.getBoolean("success");
                         output = response.getString("output");
+                        jwtToken = response.getString("token");
+                        user = response.getJSONObject("user");
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                     if (success) {
+                        // Store user info response into shared preferences file
+                        SharedPreferences.Editor editor = getSharedPreferences(Config.PREF_FILE_NAME, MODE_PRIVATE).edit();
+                        editor.putString("test", "hello");
+                        editor.putString("token", jwtToken);
+                        editor.putString("user", user.toString());
+                        editor.apply();
+                        //Redirect to Main activity
                         Intent toMain = new Intent(LoginActivity.this, MainActivity.class);
                         LoginActivity.this.startActivity(toMain);
                     } else {
+                        //Show error message and refresh Activity
                         Toast.makeText(LoginActivity.this, output, Toast.LENGTH_SHORT).show();
                         finish();
                         overridePendingTransition(0, 0);
@@ -267,6 +277,7 @@ public class LoginActivity extends AppCompatActivity  {
                         overridePendingTransition(0, 0);
 
                     }
+
                 }
             };
 
@@ -278,6 +289,7 @@ public class LoginActivity extends AppCompatActivity  {
                 }
             };
 
+            //Add Request to queue
             RequestHandler requestHandler = new RequestHandler(AUTHENTICATE_URL, new JSONObject(params), listener, errorListener);
             RequestQueue requestQueue = Volley.newRequestQueue(LoginActivity.this);
             requestQueue.add(requestHandler);

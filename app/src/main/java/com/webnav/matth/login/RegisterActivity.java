@@ -1,4 +1,5 @@
-package com.webnav.matth.logintest;
+package com.webnav.matth.login;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -14,6 +15,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 import com.webnav.matth.R;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -46,6 +48,8 @@ public class RegisterActivity extends AppCompatActivity {
                 final String username = etUsername.getText().toString();
                 final String email = etEmail.getText().toString();
                 final String password = etPassword.getText().toString();
+
+                //Validation of input fields
                 if (TextUtils.isEmpty(firstName)) {
                     etFirstName.setError("This field is required!");
                     focusView = etFirstName;
@@ -71,14 +75,30 @@ public class RegisterActivity extends AppCompatActivity {
                     focusView = etPassword;
                     cancel = true;
                 }
+                if (!isEmailValid(email)) {
+                    etEmail.setError("Enter a valid email!");
+                    focusView = etEmail;
+                    cancel = true;
+                }
                 if (cancel) {
                     focusView.requestFocus();
                 } else {
                     Register(firstName, lastName, username, email, password);
+
                 }
 
             }
         });
+    }
+
+
+    //Email checking logic goes here
+    private boolean isEmailValid(String emailToTest) {
+        if (emailToTest.contains("@")){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void Register(final String firstName, final String lastName, final String username, final String email, final String password) {
@@ -92,13 +112,28 @@ public class RegisterActivity extends AppCompatActivity {
 
 
         //Obtain Request URL from config folder
-        final String REGISTER_REQUEST_URL = Config.DEV_REGISTER_URI;
+        final String REGISTER_REQUEST_URL = Config.DEV_REGISTER_URL;
 
         //Handle Response
         Response.Listener<JSONObject> listener = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Toast.makeText(getApplication(), response.toString(), Toast.LENGTH_SHORT).show();
+                boolean success = false;
+                String output = "Unidentified Error";
+                try {
+                    success = response.getBoolean("success");
+                    output = response.getString("output");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                if (success) {
+                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
+                    Intent toLogin = new Intent(RegisterActivity.this, LoginActivity.class);
+                    RegisterActivity.this.startActivity(toLogin);
+                } else {
+                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
+                }
+
             }
         };
 
@@ -112,7 +147,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         //Pass Request to request handler and add to request queue
         RequestHandler requestHandler = new RequestHandler(REGISTER_REQUEST_URL, new JSONObject(params), listener, errorListener);
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        RequestQueue requestQueue = Volley.newRequestQueue(RegisterActivity.this);
         requestQueue.add(requestHandler);
     }
 }

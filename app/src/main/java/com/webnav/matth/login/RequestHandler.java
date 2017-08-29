@@ -1,13 +1,10 @@
-package com.webnav.matth.logintest;
+package com.webnav.matth.login;
 
 import com.android.volley.Response;
 
 import com.android.volley.toolbox.JsonObjectRequest;
 
 import org.json.JSONObject;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by matth on 26/8/2017.
