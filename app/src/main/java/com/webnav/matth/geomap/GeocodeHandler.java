@@ -26,8 +26,6 @@ public class GeocodeHandler {
     final String REVERSE_GEOCODE_REQUEST_URL = Config.REVERSE_GEOCODE_REQUEST_URL;
     Context context;
     GoogleMap mGoogleMap;
-    String formattedAddress;
-    LatLng latLng;
 
     public GeocodeHandler(Context context, GoogleMap mGoogleMap) {
         this.context = context;
@@ -43,7 +41,6 @@ public class GeocodeHandler {
             public void onResponse(String response) {
                 JSONArray streetName = null;
                 JSONObject tmpObj = null;
-
                 LatLng latLng = null;
                 try {
                     streetName = new JSONObject(response).getJSONArray("results");
@@ -92,14 +89,4 @@ public class GeocodeHandler {
         RequestQueue requestQueue = Volley.newRequestQueue(this.context);
         requestQueue.add(stringRequest);
     }
-
-
-    private void setFormattedAddress(String address) {
-        this.formattedAddress = address;
-    }
-
-    private void setLatlng(LatLng latLng) {
-        this.latLng = latLng;
-    }
-
 }

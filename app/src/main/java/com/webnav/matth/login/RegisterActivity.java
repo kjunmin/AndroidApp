@@ -14,6 +14,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 import com.webnav.matth.R;
+import com.webnav.matth.models.User;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -83,8 +84,8 @@ public class RegisterActivity extends AppCompatActivity {
                 if (cancel) {
                     focusView.requestFocus();
                 } else {
-                    Register(firstName, lastName, username, email, password);
-
+                    User user = new User(firstName, lastName, username, email, password);
+                    user.addUser(getApplication());
                 }
 
             }
@@ -101,53 +102,53 @@ public class RegisterActivity extends AppCompatActivity {
         }
     }
 
-    private void Register(final String firstName, final String lastName, final String username, final String email, final String password) {
-        //Map Form input to respective JSON Post request format
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("firstname", firstName);
-        params.put("lastname", lastName);
-        params.put("username", username);
-        params.put("email", email);
-        params.put("password", password);
-
-
-        //Obtain Request URL from config folder
-        final String REGISTER_REQUEST_URL = Config.DEV_REGISTER_URL;
-
-        //Handle Response
-        Response.Listener<JSONObject> listener = new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                boolean success = false;
-                String output = "Unidentified Error";
-                try {
-                    success = response.getBoolean("success");
-                    output = response.getString("output");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                if (success) {
-                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
-                    Intent toLogin = new Intent(RegisterActivity.this, LoginActivity.class);
-                    RegisterActivity.this.startActivity(toLogin);
-                } else {
-                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
-                }
-
-            }
-        };
-
-        //Handle Error exceptions
-        Response.ErrorListener errorListener = new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Toast.makeText(RegisterActivity.this, error+"", Toast.LENGTH_SHORT).show();
-            }
-        };
-
-        //Pass Request to request handler and add to request queue
-        RequestHandler requestHandler = new RequestHandler(REGISTER_REQUEST_URL, new JSONObject(params), listener, errorListener);
-        RequestQueue requestQueue = Volley.newRequestQueue(RegisterActivity.this);
-        requestQueue.add(requestHandler);
-    }
+//    private void Register(final String firstName, final String lastName, final String username, final String email, final String password) {
+//        //Map Form input to respective JSON Post request format
+//        Map<String, String> params = new HashMap<String, String>();
+//        params.put("firstname", firstName);
+//        params.put("lastname", lastName);
+//        params.put("username", username);
+//        params.put("email", email);
+//        params.put("password", password);
+//
+//
+//        //Obtain Request URL from config folder
+//        final String REGISTER_REQUEST_URL = Config.DEV_REGISTER_URL;
+//
+//        //Handle Response
+//        Response.Listener<JSONObject> listener = new Response.Listener<JSONObject>() {
+//            @Override
+//            public void onResponse(JSONObject response) {
+//                boolean success = false;
+//                String output = "Unidentified Error";
+//                try {
+//                    success = response.getBoolean("success");
+//                    output = response.getString("output");
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//                if (success) {
+//                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
+//                    Intent toLogin = new Intent(RegisterActivity.this, LoginActivity.class);
+//                    RegisterActivity.this.startActivity(toLogin);
+//                } else {
+//                    Toast.makeText(getApplication(), output, Toast.LENGTH_SHORT).show();
+//                }
+//
+//            }
+//        };
+//
+//        //Handle Error exceptions
+//        Response.ErrorListener errorListener = new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Toast.makeText(RegisterActivity.this, error+"", Toast.LENGTH_SHORT).show();
+//            }
+//        };
+//
+//        //Pass Request to request handler and add to request queue
+//        RequestHandler requestHandler = new RequestHandler(REGISTER_REQUEST_URL, new JSONObject(params), listener, errorListener);
+//        RequestQueue requestQueue = Volley.newRequestQueue(RegisterActivity.this);
+//        requestQueue.add(requestHandler);
+//    }
 }

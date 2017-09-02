@@ -2,12 +2,8 @@ package com.webnav.matth.geomap;
 
 import android.animation.ValueAnimator;
 import android.view.View;
-import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.Transformation;
-import android.widget.LinearLayout.LayoutParams;
 
-import static com.google.android.gms.analytics.internal.zzy.v;
 
 /**
  * Created by matth on 28/8/2017.

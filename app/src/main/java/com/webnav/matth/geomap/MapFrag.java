@@ -6,15 +6,14 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -29,62 +28,79 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.Volley;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.Api;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.Builder;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PointOfInterest;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.webnav.matth.R;
 import com.webnav.matth.login.Config;
+import com.webnav.matth.login.RequestHandler;
 import com.webnav.matth.models.GeoMarker;
+import com.webnav.matth.models.LocalStorageHandler;
+import com.webnav.matth.models.MarkerCallback;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 
 /**
  * Created by matth on 25/8/2017.
  */
 
-public class MapFrag extends Fragment implements OnMapReadyCallback {
-    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
+public class MapFrag extends Fragment implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks {
+    private final static int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 122;
     GoogleMap mGoogleMap;
     MapView mMapView;
     View mView;
-
-    public MapFrag() {
-
-    }
-
+    private GoogleApiClient googleApiClient;
 
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String s = getActivity().getIntent().getStringExtra("latlng");
-        Toast.makeText(getActivity(), s, Toast.LENGTH_SHORT).show();
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         mView = inflater.inflate(R.layout.activity_map_frag, container, false);
-
         return mView;
     }
 
-    public boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
-    }
+//    public boolean isOnline() {
+//        ConnectivityManager cm =
+//                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+//        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+//        return netInfo != null && netInfo.isConnectedOrConnecting();
+//    }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
@@ -95,6 +111,7 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
             mMapView.onResume();
             mMapView.getMapAsync(this);
         }
+        // Location searchbar
         final EditText etLocationSearch = (EditText) view.findViewById(R.id.etLocationSearch);
         Button btnLocationSearch = (Button) view.findViewById(R.id.btnLocationSearch);
 
@@ -111,7 +128,8 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
 
                         @Override
                         public void processFinish(final String response, final LatLng response2) {
-                            addMarkerAndCenterOnMarker(response2, mGoogleMap, "Marker");
+                            addMarkerToMap(response2, mGoogleMap, "Marker");
+                            centerCameraOnLatLng(response2, mGoogleMap);
                             Snackbar snackbar = Snackbar
                                     .make(getView(), response, Snackbar.LENGTH_LONG)
                                     .setAction("Add Marker", new View.OnClickListener() {
@@ -131,46 +149,36 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
     }
 
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                    if (ContextCompat.checkSelfPermission(getActivity(),
-                            Manifest.permission.ACCESS_FINE_LOCATION)
-                            == PackageManager.PERMISSION_GRANTED) {
-                        mGoogleMap.setMyLocationEnabled(true);
-                    }
-                } else {
-                    Toast.makeText(getActivity(), "Allow location permissions to enable functionality", Toast.LENGTH_SHORT).show();
-                }
-                return;
-            }
-        }
-    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-
         MapsInitializer.initialize(getActivity());
         mGoogleMap = googleMap;
 
+        //Check for location permission before allowing location services
         if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             ActivityCompat.requestPermissions(getActivity(),
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
             return;
-        }
-        mGoogleMap.setMyLocationEnabled(true);
+        } else
+            mGoogleMap.setMyLocationEnabled(true);
+        setMarkersFromArray(mGoogleMap);
 
-        //Default location on load
-        addMarkerAndCenterOnMarker(new LatLng(40.689247, -74.044502), mGoogleMap, "Statue Of Liberty");
+        mGoogleMap.setOnPoiClickListener(new GoogleMap.OnPoiClickListener() {
+            @Override
+            public void onPoiClick(PointOfInterest pointOfInterest) {
+                Marker marker = mGoogleMap.addMarker(new MarkerOptions()
+                        .position(pointOfInterest.latLng)
+                        .title(pointOfInterest.name)
+                        .snippet("Place ID: " + pointOfInterest.placeId));
+
+                marker.showInfoWindow();
+            }
+        });
 
         mGoogleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
             Marker currentMarker = null;
@@ -204,14 +212,16 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
 
     }
 
-    //Add Marker to map and center camera
-    private void addMarkerAndCenterOnMarker(LatLng latLng, GoogleMap mGoogleMap, String title) {
+    private void addMarkerToMap(LatLng latLng, GoogleMap mGoogleMap, String title) {
         mGoogleMap.addMarker(new MarkerOptions().position(latLng).title(title));
+    }
+
+    private void centerCameraOnLatLng(LatLng latLng, GoogleMap mGoogleMap){
         CameraPosition camPos = CameraPosition.builder().target(latLng).zoom(Config.MAP_ZOOM).bearing(Config.MAP_BEARING).tilt(Config.MAP_TILT).build();
         mGoogleMap.moveCamera(CameraUpdateFactory.newCameraPosition(camPos));
     }
 
-    private void showMarkerDialog(Context context, final LatLng latLng, final String formattedAddress) {
+    public void showMarkerDialog(Context context, final LatLng latLng, final String formattedAddress) {
         final Dialog dialog = new Dialog(context);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.marker_popup_view);
@@ -243,18 +253,15 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
         btnDialogAccept.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                JSONObject user = getUserInfo();
-                String markerOwner = null;
-                try {
-                    markerOwner = user.getString("username");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                LocalStorageHandler userStorage = new LocalStorageHandler();
+                String markerOwner = userStorage.getUsername(getActivity().getApplicationContext());
                 if (markerOwner != null) {
+                    // Add marker
                     String label = etDialogLabel.getText().toString();
                     GeoMarker geoMarker = new GeoMarker(formattedAddress, label, latLng.latitude, latLng.longitude, markerOwner);
                     geoMarker.addMarker(getActivity());
                 }
+                dialog.cancel();
             }
         });
 
@@ -271,18 +278,84 @@ public class MapFrag extends Fragment implements OnMapReadyCallback {
         dialog.show();
     }
 
-    private JSONObject getUserInfo() {
-        //Retrieve Profile Information from shared preferences
-        SharedPreferences prefs = getActivity().getSharedPreferences(Config.PREF_FILE_NAME, Context.MODE_PRIVATE);
-        JSONObject jsonUser = new JSONObject();
-        if (prefs != null) {
-            String user = prefs.getString("user", null);
-            try {
-                jsonUser = new JSONObject(user);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        @SuppressWarnings("MissingPermission") Location location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+        if (location != null) {
+            addMarkerToMap(new LatLng(location.getLatitude(), location.getLongitude()) , mGoogleMap, "Current");
+            centerCameraOnLatLng(new LatLng(location.getLatitude(), location.getLongitude()), mGoogleMap);
         }
-        return jsonUser;
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    private void setMarkersFromArray(final GoogleMap mGoogleMap) {
+        getMarkers(new MarkerCallback() {
+            @Override
+            public void onSuccess(JSONArray markerArray) {
+                for (int i = 0; i < markerArray.length(); i++) {
+                    JSONObject marker = null;
+                    double markerLat = 0.0;
+                    double markerLng = 0.0;
+                    String markerLabel = null;
+                    try {
+                        marker = markerArray.getJSONObject(i);
+                        markerLat = marker.getDouble("latitude");
+                        markerLng = marker.getDouble("longitude");
+                        markerLabel = marker.getString("label");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    if (marker != null && markerLabel != null) {
+                        LatLng markerLatLng = new LatLng(markerLat, markerLng);
+                        addMarkerToMap(markerLatLng, mGoogleMap, markerLabel);
+                    }
+                }
+            }
+        });
+    }
+
+    public void getMarkers(final MarkerCallback callback) {
+        LocalStorageHandler userStorage = new LocalStorageHandler();
+        String username = userStorage.getUsername(getActivity().getApplicationContext());
+        if (username != null) {
+            String GET_MARKERS_URI = Config.DEV_GET_MARKERS_URL;
+            Map<String, String> params = new HashMap<>();
+            params.put("username", username);
+            final String markerOwner = username;
+            Response.Listener<JSONObject> listener = new Response.Listener<JSONObject>() {
+
+                @Override
+                public void onResponse(JSONObject response) {
+                    boolean success = false;
+                    JSONArray markerArray = new JSONArray();
+                    try {
+                        success = response.getBoolean("success");
+                        markerArray = response.getJSONArray("output");
+                        callback.onSuccess(markerArray);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    if (success) {
+                        callback.onSuccess(markerArray);
+                    }
+                }
+            };
+
+            Response.ErrorListener errorListener = new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Toast.makeText(getActivity(), "Error retrieving marker data", Toast.LENGTH_SHORT).show();
+                }
+            };
+
+            RequestHandler requestHandler = new RequestHandler(GET_MARKERS_URI, new JSONObject(params), listener, errorListener);
+            RequestQueue requestQueue = Volley.newRequestQueue(getActivity().getApplicationContext());
+            requestQueue.add(requestHandler);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.webnav.matth.geomap;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -12,6 +13,8 @@ import android.widget.TextView;
 
 import com.webnav.matth.R;
 import com.webnav.matth.login.Config;
+import com.webnav.matth.models.LocalStorageHandler;
+import com.webnav.matth.services.LocationService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,39 +36,22 @@ public class ProfileFrag extends Fragment{
         super.onViewCreated(view, savedInstanceState);
         final TextView profileFullname = (TextView) getView().findViewById(R.id.profile_fullname);
         final TextView profileEmail = (TextView) getView().findViewById(R.id.profile_email);
-        JSONObject userInfo = getUserInfo();
-        String userFirstname = null;
-        String userLastname = null;
-        String userEmail = null;
-        try {
-            userFirstname = userInfo.getString("firstname");
-            userLastname = userInfo.getString("lastname");
-            userEmail = userInfo.getString("email");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+
+        LocalStorageHandler userStorage = new LocalStorageHandler();
+
+        String userFirstname = userStorage.getFirstname(getActivity().getApplicationContext());
+        String userLastname = userStorage.getLastname(getActivity().getApplicationContext());
+        String userEmail = userStorage.getEmail(getActivity().getApplicationContext());
+
         if (userFirstname != null && userLastname != null){
             String userFullname = userFirstname + " " + userLastname;
-            profileFullname.setText("Name: " + userFullname);
+            profileFullname.setText("Welcome Back, " + userFullname);
         }
         if (userEmail != null) {
             profileEmail.setText("Email: "+ userEmail);
         }
-    }
-
-    private JSONObject getUserInfo() {
-        //Retrieve Profile Information from shared preferences
-        SharedPreferences prefs = getActivity().getSharedPreferences(Config.PREF_FILE_NAME, Context.MODE_PRIVATE);
-        JSONObject jsonUser = new JSONObject();
-        if (prefs != null) {
-            String user = prefs.getString("user", null);
-            try {
-                jsonUser = new JSONObject(user);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        return jsonUser;
+        Intent startLocationServices = new Intent(getActivity(), LocationService.class);
+        getActivity().startService(startLocationServices);
     }
 
 }

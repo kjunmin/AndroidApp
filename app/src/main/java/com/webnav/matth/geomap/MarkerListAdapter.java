@@ -22,7 +22,7 @@ public class MarkerListAdapter extends ArrayAdapter<GeoMarker> {
     private final ArrayList<GeoMarker> markersArray;
     public MarkerListAdapter(Activity context,
                       ArrayList<GeoMarker> markersArray) {
-        super(context, R.layout.marker_list_single, markersArray);
+        super(context, R.layout.marker_list_child, markersArray);
         this.context = context;
         this.markersArray = markersArray;
     }
@@ -30,7 +30,7 @@ public class MarkerListAdapter extends ArrayAdapter<GeoMarker> {
     public View getView(int position, View view, ViewGroup parent) {
 
         LayoutInflater inflater = context.getLayoutInflater();
-        View rowView= inflater.inflate(R.layout.marker_list_single, null);
+        View rowView= inflater.inflate(R.layout.marker_list_child, null);
 
         //Set layout textview with marker array list
         TextView tvAddress = (TextView) rowView.findViewById(R.id.tvMarkerAddress);

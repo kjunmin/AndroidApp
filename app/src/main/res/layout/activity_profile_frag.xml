@@ -7,7 +7,6 @@
     tools:context="com.webnav.matth.geomap.ProfileFrag">
 
 
-
     <TextView
         android:id="@+id/profile_fullname"
         android:textSize="20dp"
@@ -28,6 +27,16 @@
         android:layout_below="@+id/profile_fullname"
         android:layout_marginTop="36dp"
         android:text="Email: " />
+
+    <TextView
+        android:id="@+id/profile_app_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="italic"
+        android:text="App Info: version 1.0.6, Last Updated 9/2/2017"
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@+id/profile_email"
+        android:layout_marginBottom="35dp" />
 
 
 </RelativeLayout>
